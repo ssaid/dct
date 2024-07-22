@@ -4,6 +4,7 @@ services:
     container_name: semaphore
     labels:
       - "traefik.http.routers.semaphore.rule=Host(`${SEMAPHORE_URL}`)"
+      - "traefik.http.services.semaphore.loadbalancer.server.port=3000"
       - "traefik.enable=true"
     networks:
       - inverseproxy_shared
