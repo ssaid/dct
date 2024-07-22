@@ -1,0 +1,64 @@
+services:
+  reverse-proxy:
+    image: traefik:v3.1.0
+    command:
+      - "--log.level=INFO"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websecure.http3"
+      - "--entrypoints.web.address=:80"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      # Uncomment the following line to use staging certificates
+      #- "--certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.letsencrypt.acme.email=${TRAEFIK_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--serverstransport.insecureskipverify=true"
+      - "--providers.file.directory=/config/"
+      - "--experimental.plugins.sablier.modulename=github.com/acouvreur/sablier"
+      - "--experimental.plugins.sablier.version=v1.8.0-beta.12"
+    ports:
+      - "80:80"
+      - "443:443/tcp"
+      - "443:443/udp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./letsencrypt:/letsencrypt
+      - ./config:/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DASHBOARD_URL}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_DASHBOARD_PW}"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certResolver=letsencrypt"
+    restart: unless-stopped
+    networks:
+      default:
+      inverseproxy_shared:
+
+  sablier:
+    container_name: traefik-sablier
+    image: acouvreur/sablier:latest
+    command:
+      - start
+      - --provider.name=docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      inverseproxy_shared:
+    
+  whoami:
+    image: "traefik/whoami"
+    container_name: "whoami"
+    networks:
+      inverseproxy_shared:
+
+networks:
+  inverseproxy_shared:
+    external: true
