@@ -1,0 +1,28 @@
+services:
+  semaphore:
+    image: semaphoreui/semaphore:${SEMAPHORE_VERSION}
+    container_name: semaphore
+    labels:
+      - "traefik.http.routers.semaphore.rule=Host(`${SEMAPHORE_URL}`)"
+    networks:
+      - inverseproxy_shared
+    environment:
+      - SEMAPHORE_DB_DIALECT=${SEMAPHORE_DB_DIALECT}
+      - SEMAPHORE_ADMIN=${SEMAPHORE_ADMIN}
+      - SEMAPHORE_ADMIN_PASSWORD=${SEMAPHORE_ADMIN_PASSWORD}
+      - SEMAPHORE_ADMIN_NAME=${SEMAPHORE_ADMIN_NAME}
+      - SEMAPHORE_ADMIN_EMAIL=${SEMAPHORE_ADMIN_EMAIL}
+    volumes:
+      - semaphore_data:/var/lib/semaphore
+      - semaphore_config:/etc/semaphore
+      - tmp_config:/tmp/semaphore
+    restart: always
+
+volumes:
+  semaphore_data:
+  semaphore_config:
+  tmp_config:
+
+networks:
+  inverseproxy_shared:
+    external: true
